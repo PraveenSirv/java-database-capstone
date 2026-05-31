@@ -1,87 +1,98 @@
 // patientDashboard.js
-import { getDoctors } from './services/doctorServices.js';
+import { getDoctors, filterDoctors } from './services/doctorServices.js';
 import { openModal } from './components/modals.js';
 import { createDoctorCard } from './components/doctorCard.js';
-import { filterDoctors } from './services/doctorServices.js';//call the same function to avoid duplication coz the functionality was same
 import { patientSignup, patientLogin } from './services/patientServices.js';
 
-
-
+// Consolidated page initialization
 document.addEventListener("DOMContentLoaded", () => {
+  // Load initial doctor cards
   loadDoctorCards();
-});
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("patientSignup");
-  if (btn) {
-    btn.addEventListener("click", () => openModal("patientSignup"));
+  // Bind login and signup triggers
+  const signupBtn = document.getElementById("patientSignup");
+  if (signupBtn) {
+    signupBtn.addEventListener("click", () => openModal("patientSignup"));
   }
-});
 
-document.addEventListener("DOMContentLoaded", () => {
-  const loginBtn = document.getElementById("patientLogin")
+  const loginBtn = document.getElementById("patientLogin");
   if (loginBtn) {
-    loginBtn.addEventListener("click", () => {
-      openModal("patientLogin")
-    })
+    loginBtn.addEventListener("click", () => openModal("patientLogin"));
   }
-})
 
-function loadDoctorCards() {
-  getDoctors()
-    .then(doctors => {
-      const contentDiv = document.getElementById("content");
-      contentDiv.innerHTML = "";
+  // Bind filter/search controls
+  const searchBar = document.getElementById("searchBar");
+  const filterTime = document.getElementById("filterTime");
+  const filterSpecialty = document.getElementById("filterSpecialty");
 
-      doctors.forEach(doctor => {
-        const card = createDoctorCard(doctor);
-        contentDiv.appendChild(card);
-      });
-    })
-    .catch(error => {
-      console.error("Failed to load doctors:", error);
-    });
-}
-// Filter Input
-document.getElementById("searchBar").addEventListener("input", filterDoctorsOnChange);
-document.getElementById("filterTime").addEventListener("change", filterDoctorsOnChange);
-document.getElementById("filterSpecialty").addEventListener("change", filterDoctorsOnChange);
+  if (searchBar) searchBar.addEventListener("input", filterDoctorsOnChange);
+  if (filterTime) filterTime.addEventListener("change", filterDoctorsOnChange);
+  if (filterSpecialty) filterSpecialty.addEventListener("change", filterDoctorsOnChange);
+});
 
-
-
-function filterDoctorsOnChange() {
-  const searchBar = document.getElementById("searchBar").value.trim();
-  const filterTime = document.getElementById("filterTime").value;
-  const filterSpecialty = document.getElementById("filterSpecialty").value;
-
-
-  const name = searchBar.length > 0 ? searchBar : null;
-  const time = filterTime.length > 0 ? filterTime : null;
-  const specialty = filterSpecialty.length > 0 ? filterSpecialty : null;
-
-  filterDoctors(name, time, specialty)
-    .then(response => {
-      const doctors = response.doctors;
-      const contentDiv = document.getElementById("content");
-      contentDiv.innerHTML = "";
-
-      if (doctors.length > 0) {
-        console.log(doctors);
-        doctors.forEach(doctor => {
-          const card = createDoctorCard(doctor);
-          contentDiv.appendChild(card);
-        });
-      } else {
-        contentDiv.innerHTML = "<p>No doctors found with the given filters.</p>";
-        console.log("Nothing");
-      }
-    })
-    .catch(error => {
-      console.error("Failed to filter doctors:", error);
-      alert("❌ An error occurred while filtering doctors.");
-    });
+/**
+ * Render a list of doctor cards into the content container.
+ * @param {Array} doctors - List of doctors to display.
+ */
+export function renderDoctorCards(doctors) {
+  const contentDiv = document.getElementById("content");
+  if (!contentDiv) return;
+  contentDiv.innerHTML = "";
+  doctors.forEach(doctor => {
+    const card = createDoctorCard(doctor);
+    contentDiv.appendChild(card);
+  });
 }
 
+/**
+ * Load all doctors on page load and display them.
+ */
+async function loadDoctorCards() {
+  try {
+    const doctors = await getDoctors();
+    renderDoctorCards(doctors);
+  } catch (error) {
+    console.error("Failed to load doctors:", error);
+  }
+}
+
+/**
+ * Filter doctors list on input/selection change.
+ */
+async function filterDoctorsOnChange() {
+  const searchInput = document.getElementById("searchBar");
+  const timeSelect = document.getElementById("filterTime");
+  const specialtySelect = document.getElementById("filterSpecialty");
+
+  const searchVal = searchInput ? searchInput.value.trim() : "";
+  const timeVal = timeSelect ? timeSelect.value : "";
+  const specialtyVal = specialtySelect ? specialtySelect.value : "";
+
+  const name = searchVal.length > 0 ? searchVal : null;
+  const time = timeVal.length > 0 ? timeVal : null;
+  const specialty = specialtyVal.length > 0 ? specialtyVal : null;
+
+  try {
+    const response = await filterDoctors(name, time, specialty);
+    const doctors = response.doctors || [];
+    const contentDiv = document.getElementById("content");
+    if (!contentDiv) return;
+    contentDiv.innerHTML = "";
+
+    if (doctors.length > 0) {
+      renderDoctorCards(doctors);
+    } else {
+      contentDiv.innerHTML = "<p>No doctors found with the given filters.</p>";
+    }
+  } catch (error) {
+    console.error("Failed to filter doctors:", error);
+    alert("❌ An error occurred while filtering doctors.");
+  }
+}
+
+/**
+ * Submit patient signup form. Exposed globally on window.
+ */
 window.signupPatient = async function () {
   try {
     const name = document.getElementById("name").value;
@@ -96,41 +107,41 @@ window.signupPatient = async function () {
       alert(message);
       document.getElementById("modal").style.display = "none";
       window.location.reload();
+    } else {
+      alert(message);
     }
-    else alert(message);
   } catch (error) {
     console.error("Signup failed:", error);
     alert("❌ An error occurred while signing up.");
   }
 };
 
+/**
+ * Submit patient login form. Exposed globally on window.
+ */
 window.loginPatient = async function () {
   try {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    const data = {
-      email,
-      password
-    }
-    console.log("loginPatient :: ", data)
+    const data = { email, password };
     const response = await patientLogin(data);
-    console.log("Status Code:", response.status);
-    console.log("Response OK:", response.ok);
+    
     if (response.ok) {
       const result = await response.json();
-      console.log(result);
-      selectRole('loggedPatient');
-      localStorage.setItem('token', result.token)
-      window.location.href = '/pages/loggedPatientDashboard.html';
+      localStorage.setItem('token', result.token);
+      if (typeof window.selectRole === "function") {
+        window.selectRole('loggedPatient');
+      } else if (typeof selectRole === "function") {
+        selectRole('loggedPatient');
+      } else {
+        window.location.href = '/pages/loggedPatientDashboard.html';
+      }
     } else {
       alert('❌ Invalid credentials!');
     }
+  } catch (error) {
+    console.error("Error during patient login:", error);
+    alert("❌ Failed to Login. Please try again later.");
   }
-  catch (error) {
-    alert("❌ Failed to Login : ", error);
-    console.log("Error :: loginPatient :: ", error)
-  }
-
-
-}
+};
