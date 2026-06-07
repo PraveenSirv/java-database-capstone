@@ -4,6 +4,7 @@ import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Doctor;
 import com.project.back_end.repo.AppointmentRepository;
 import com.project.back_end.repo.DoctorRepository;
+import com.project.back_end.DTO.DoctorDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,12 +60,12 @@ public class DoctorService {
     }
 
     @Transactional
-    public int saveDoctor(Doctor doctor) {
+    public int saveDoctor(DoctorDTO doctorDTO) {
         try {
-            if (doctorRepository.findByEmail(doctor.getEmail()) != null) {
+            if (doctorRepository.findByEmail(doctorDTO.getEmail()) != null) {
                 return -1; // Conflict
             }
-            doctorRepository.save(doctor);
+            doctorRepository.save(doctorDTO.toEntity());
             return 1; // Success
         } catch (Exception e) {
             return 0; // Failure
@@ -72,19 +73,19 @@ public class DoctorService {
     }
 
     @Transactional
-    public int updateDoctor(Doctor doctor) {
+    public int updateDoctor(DoctorDTO doctorDTO) {
         try {
-            Doctor existing = doctorRepository.findById(doctor.getId()).orElse(null);
+            Doctor existing = doctorRepository.findById(doctorDTO.getId()).orElse(null);
             if (existing == null) {
                 return -1;
             }
-            existing.setName(doctor.getName());
-            existing.setEmail(doctor.getEmail());
-            existing.setSpecialty(doctor.getSpecialty());
-            existing.setPhone(doctor.getPhone());
-            existing.setAvailableTimes(doctor.getAvailableTimes());
-            if (doctor.getPassword() != null && !doctor.getPassword().isEmpty()) {
-                existing.setPassword(doctor.getPassword());
+            existing.setName(doctorDTO.getName());
+            existing.setEmail(doctorDTO.getEmail());
+            existing.setSpecialty(doctorDTO.getSpecialty());
+            existing.setPhone(doctorDTO.getPhone());
+            existing.setAvailableTimes(doctorDTO.getAvailableTimes());
+            if (doctorDTO.getPassword() != null && !doctorDTO.getPassword().isEmpty()) {
+                existing.setPassword(doctorDTO.getPassword());
             }
             doctorRepository.save(existing);
             return 1;
@@ -94,8 +95,10 @@ public class DoctorService {
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> getDoctors() {
-        return doctorRepository.findAll();
+    public List<DoctorDTO> getDoctors() {
+        return doctorRepository.findAll().stream()
+                .map(DoctorDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -127,8 +130,10 @@ public class DoctorService {
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> findDoctorByName(String name) {
-        return doctorRepository.findByNameLike(name);
+    public List<DoctorDTO> findDoctorByName(String name) {
+        return doctorRepository.findByNameLike(name).stream()
+                .map(DoctorDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     private boolean isAvailableDuring(List<String> availableTimes, String timeFilter) {
@@ -153,7 +158,7 @@ public class DoctorService {
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctors(String name, String time, String specialty) {
+    public List<DoctorDTO> filterDoctors(String name, String time, String specialty) {
         boolean hasName = (name != null && !name.isEmpty() && !"null".equalsIgnoreCase(name));
         boolean hasTime = (time != null && !time.isEmpty() && !"null".equalsIgnoreCase(time));
         boolean hasSpecialty = (specialty != null && !specialty.isEmpty() && !"null".equalsIgnoreCase(specialty));
@@ -175,43 +180,45 @@ public class DoctorService {
                     .collect(Collectors.toList());
         }
 
-        return doctors;
+        return doctors.stream()
+                .map(DoctorDTO::fromEntity)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorsByNameSpecilityandTime(String name, String specialty, String time) {
+    public List<DoctorDTO> filterDoctorsByNameSpecilityandTime(String name, String specialty, String time) {
         return filterDoctors(name, time, specialty);
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorByTime(List<Doctor> doctors, String time) {
+    public List<DoctorDTO> filterDoctorByTime(List<DoctorDTO> doctors, String time) {
         return doctors.stream()
                 .filter(d -> isAvailableDuring(d.getAvailableTimes(), time))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorByNameAndTime(String name, String time) {
+    public List<DoctorDTO> filterDoctorByNameAndTime(String name, String time) {
         return filterDoctors(name, time, null);
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorByNameAndSpecility(String name, String specialty) {
+    public List<DoctorDTO> filterDoctorByNameAndSpecility(String name, String specialty) {
         return filterDoctors(name, null, specialty);
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorByTimeAndSpecility(String time, String specialty) {
+    public List<DoctorDTO> filterDoctorByTimeAndSpecility(String time, String specialty) {
         return filterDoctors(null, time, specialty);
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorBySpecility(String specialty) {
+    public List<DoctorDTO> filterDoctorBySpecility(String specialty) {
         return filterDoctors(null, null, specialty);
     }
 
     @Transactional(readOnly = true)
-    public List<Doctor> filterDoctorsByTime(String time) {
+    public List<DoctorDTO> filterDoctorsByTime(String time) {
         return filterDoctors(null, time, null);
     }
 }

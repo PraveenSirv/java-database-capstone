@@ -1,6 +1,7 @@
 package com.project.back_end.services;
 
 import com.project.back_end.DTO.AppointmentDTO;
+import com.project.back_end.DTO.DoctorDTO;
 import com.project.back_end.models.Admin;
 import com.project.back_end.models.Appointment;
 import com.project.back_end.models.Doctor;
@@ -71,7 +72,7 @@ public class Service {
         }
     }
 
-    public List<Doctor> filterDoctor(String name, String time, String specialty) {
+    public List<DoctorDTO> filterDoctor(String name, String time, String specialty) {
         return doctorService.filterDoctors(name, time, specialty);
     }
 

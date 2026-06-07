@@ -1,8 +1,10 @@
 package com.project.back_end.controllers;
 
 import com.project.back_end.DTO.Login;
+import com.project.back_end.DTO.DoctorDTO;
 import com.project.back_end.models.Doctor;
 import com.project.back_end.services.DoctorService;
+import jakarta.validation.Valid;
 import com.project.back_end.services.Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,14 +45,14 @@ public class DoctorController {
     }
 
     @PostMapping("/{token}")
-    public ResponseEntity<Map<String, Object>> saveDoctor(@RequestBody Doctor doctor, @PathVariable("token") String token) {
+    public ResponseEntity<Map<String, Object>> saveDoctor(@Valid @RequestBody DoctorDTO doctorDTO, @PathVariable("token") String token) {
         ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
         if (validation != null) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Session expired or invalid login. Please log in again.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-        int result = doctorService.saveDoctor(doctor);
+        int result = doctorService.saveDoctor(doctorDTO);
         Map<String, Object> response = new HashMap<>();
         if (result == -1) {
             response.put("message", "Doctor already exists!");
@@ -65,14 +67,14 @@ public class DoctorController {
     }
 
     @PutMapping("/{token}")
-    public ResponseEntity<Map<String, Object>> updateDoctor(@RequestBody Doctor doctor, @PathVariable("token") String token) {
+    public ResponseEntity<Map<String, Object>> updateDoctor(@Valid @RequestBody DoctorDTO doctorDTO, @PathVariable("token") String token) {
         ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
         if (validation != null) {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Session expired or invalid login. Please log in again.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
-        int result = doctorService.updateDoctor(doctor);
+        int result = doctorService.updateDoctor(doctorDTO);
         Map<String, Object> response = new HashMap<>();
         if (result == -1) {
             response.put("message", "Doctor not found");
@@ -113,7 +115,7 @@ public class DoctorController {
     public ResponseEntity<Map<String, Object>> filter(@PathVariable("name") String name,
                                                       @PathVariable("time") String time,
                                                       @PathVariable("specialty") String specialty) {
-        List<Doctor> doctors = service.filterDoctor(name, time, specialty);
+        List<DoctorDTO> doctors = service.filterDoctor(name, time, specialty);
         Map<String, Object> response = new HashMap<>();
         response.put("doctors", doctors);
         return ResponseEntity.ok(response);
